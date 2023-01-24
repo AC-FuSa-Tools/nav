@@ -62,8 +62,12 @@ func compareConfigs(c1 configuration, c2 configuration) bool {
 	return res
 }
 
+//func compareConfigs(c1 configuration, c2 configuration) bool {
+//    return true
+//}
+
 // Tests the ability to extract the configuration from command line arguments
-func testConfig(t *testing.T) {
+func TestConfig(t *testing.T) {
 
 	var testConfig configuration = configuration{
 		DBUrl:          "dummy",
@@ -77,7 +81,7 @@ func testConfig(t *testing.T) {
 		ExcludedBefore: []string{"dummy1", "dummy2", "dummy3"},
 		ExcludedAfter:  []string{"dummyA", "dummyB", "dummyC"},
 		MaxDepth:       1234, //0: no limit
-		Jout:           "jsonOutputPlain",
+		Jout:           "JsonOutputPlain",
 		cmdlineNeeds:   map[string]bool{},
 	}
 
