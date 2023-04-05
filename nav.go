@@ -6,6 +6,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
@@ -13,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"github.com/goccy/go-graphviz"
 )
 
 const (
@@ -84,6 +86,35 @@ func decorate(dotStr string, adjm []adjM) string {
 		}
 	}
 	return res
+}
+
+func do_graphviz(dot string, output_type outIMode) error{
+	var buf bytes.Buffer
+	var format graphviz.Format
+
+	switch output_type {
+	case oPNG:
+		format=graphviz.PNG
+	case oJPG:
+		format=graphviz.JPG
+	case oSVG:
+		format=graphviz.SVG
+	default:
+		return errors.New("Unknown format")
+	}
+
+
+	graph, _ := graphviz.ParseBytes([]byte(dot))
+	g := graphviz.New()
+	defer func() {
+		if err := graph.Close(); err != nil {
+			panic(err)
+		}
+		g.Close()
+	}()
+	g.Render(graph, format, &buf)
+	binary.Write(os.Stdout, binary.LittleEndian, buf.Bytes())
+	return nil
 }
 
 func generateOutput(d Datasource, conf *configuration) (string, error) {
@@ -196,5 +227,12 @@ func main() {
 		fmt.Println("Internal error", err)
 		os.Exit(-3)
 	}
-	fmt.Println(output)
+	if conf.Graphviz != oText {
+		err = do_graphviz(output, conf.Graphviz);
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	} else {
+		fmt.Println(output)
+	}
 }

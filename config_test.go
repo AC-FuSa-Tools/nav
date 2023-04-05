@@ -33,6 +33,7 @@ var _ = Describe("ConfigTest", func() {
 			Jout:           "jsonOutputPlain",
 			cmdlineNeeds:   map[string]bool{},
 			TargetSubsys:   []string{},
+			Graphviz:       oText,
 		}
 	})
 

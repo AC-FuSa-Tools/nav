@@ -43,6 +43,7 @@ type configuration struct {
 	TargetSubsys   []string
 	Instance       int
 	MaxDepth       int
+	Graphviz       outIMode
 	Mode           outMode
 }
 
@@ -58,6 +59,7 @@ var defaultConfig = configuration{
 	TargetSubsys:   []string{},
 	MaxDepth:       0, //0: no limit
 	Jout:           "graphOnly",
+	Graphviz:	oText,
 	cmdlineNeeds:   map[string]bool{},
 }
 
@@ -84,6 +86,7 @@ func cmdLineItemInit() []cmdLineItems {
 	pushCmdLineItem("-d", "Forces to use a specified DB DSN", true, false, funcDBDSN, &res)
 	pushCmdLineItem("-m", "Sets display mode 2=subsystems,1=all", true, false, funcMode, &res)
 	pushCmdLineItem("-x", "Specify Max depth in call flow exploration", true, false, funcDepth, &res)
+	pushCmdLineItem("-g", "if -j option is graphOnly (default) output PNG in place of dot", true, false, funcGraphviz, &res)
 	pushCmdLineItem("-h", "This help", false, false, funcHelp, &res)
 
 	return res
@@ -91,6 +94,18 @@ func cmdLineItemInit() []cmdLineItems {
 
 func funcHelp(conf *configuration, fn []string) error {
 	return errors.New("command help")
+}
+
+func funcGraphviz(conf *configuration, imode []string) error {
+	s, err := strconv.Atoi(imode[0])
+	if err != nil {
+		return err
+	}
+	if outIMode(s) < oText || outIMode(s) >= OutIModeLast {
+		return errors.New("unsupported mode")
+	}
+	conf.Graphviz = outIMode(s)
+	return nil
 }
 
 func funcOutType(conf *configuration, jout []string) error {
