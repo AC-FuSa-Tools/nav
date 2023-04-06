@@ -23,8 +23,7 @@ type outIMode int64
 
 // Const values for configuration mode field.
 const (
-	_ outMode = iota
-	printAll
+	printAll outMode = iota
 	printSubsys
 	printSubsysWs
 	printTargeted
