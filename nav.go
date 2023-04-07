@@ -5,6 +5,21 @@
 
 package main
 
+/*
+#cgo LDFLAGS: -ldotparser -Ldot_parser/
+#include <stdio.h>
+#include "dot_parser/dot.tab.h"
+extern int dotparse(void);
+extern void set_input_string(const char* in);
+extern void end_lexical_scan(void);
+int parse_string(const char* in) {
+	set_input_string(in);
+	int rv = dotparse();
+	end_lexical_scan();
+	return rv;
+}
+*/
+import "C"
 import (
 	"encoding/binary"
 	"bytes"
@@ -115,6 +130,13 @@ func do_graphviz(dot string, output_type outIMode) error{
 	g.Render(graph, format, &buf)
 	binary.Write(os.Stdout, binary.LittleEndian, buf.Bytes())
 	return nil
+}
+
+func valid_dot(dot string) bool{
+	if C.parse_string(C.CString(dot))==0 {
+		return true
+		}
+	return false
 }
 
 func generateOutput(d Datasource, conf *configuration) (string, error) {
