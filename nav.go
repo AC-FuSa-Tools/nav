@@ -8,7 +8,6 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
-	"database/sql"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -87,7 +86,7 @@ func decorate(dotStr string, adjm []adjM) string {
 	return res
 }
 
-func generateOutput(db *sql.DB, conf *configuration) (string, error) {
+func generateOutput(d Datasource, conf *configuration) (string, error) {
 	var graphOutput string
 	var jsonOutput string
 	var prod = map[string]int{}
@@ -96,37 +95,33 @@ func generateOutput(db *sql.DB, conf *configuration) (string, error) {
 	var output string
 	var adjm []adjM
 
-	cache := make(map[int][]entry)
-	cache2 := make(map[int]entry)
-	cache3 := make(map[string]string)
-
-	start, err := sym2num(db, conf.Symbol, conf.Instance)
+	start, err := d.sym2num(conf.Symbol, conf.Instance)
 	if err != nil {
 		fmt.Println("Symbol not found")
 		return "", err
 	}
 
 	graphOutput = fmtDotHeader[opt2num(conf.Jout)]
-	entry, err := getEntryById(db, start, conf.Instance, cache2)
+	entry, err := d.getEntryById(start, conf.Instance)
 	if err != nil {
 		return "", err
 	} else {
 		entryName = entry.symbol
 	}
-	startSubsys, _ := getSubsysFromSymbolName(db, entryName, conf.Instance, cache3)
+	startSubsys, _ := d.getSubsysFromSymbolName(entryName, conf.Instance)
 	if startSubsys == "" {
 		startSubsys = SUBSYS_UNDEF
 	}
 
 	if (conf.Mode == printTargeted) && len(conf.TargetSubsys) == 0 {
-		targSubsysTmp, err := getSubsysFromSymbolName(db, conf.Symbol, conf.Instance, cache3)
+		targSubsysTmp, err := d.getSubsysFromSymbolName(conf.Symbol, conf.Instance)
 		if err != nil {
 			panic(err)
 		}
 		conf.TargetSubsys = append(conf.TargetSubsys, targSubsysTmp)
 	}
 
-	navigate(db, start, node{startSubsys, entryName, "entry point", "0x0"}, conf.TargetSubsys, &visited, &adjm, prod, conf.Instance, Cache{cache, cache2, cache3}, conf.Mode, conf.ExcludedAfter, conf.ExcludedBefore, 0, conf.MaxDepth, fmtDot[opt2num(conf.Jout)], &output)
+	navigate(d, start, node{startSubsys, entryName, "entry point", "0x0"}, conf.TargetSubsys, &visited, &adjm, prod, conf.Instance, conf.Mode, conf.ExcludedAfter, conf.ExcludedBefore, 0, conf.MaxDepth, fmtDot[opt2num(conf.Jout)], &output)
 
 	if (conf.Mode == printSubsysWs) || (conf.Mode == printTargeted) {
 		output = decorate(output, adjm)
@@ -135,7 +130,7 @@ func generateOutput(db *sql.DB, conf *configuration) (string, error) {
 	graphOutput += output
 	if conf.Mode == printTargeted {
 		for _, i := range conf.TargetSubsys {
-			if cache3[conf.Symbol] == i {
+			if d.GetExploredSubsystemByName(conf.Symbol) == i {
 				graphOutput += fmt.Sprintf(fmtDotNodeHighlightWSymb, i, conf.Symbol)
 			} else {
 				graphOutput += fmt.Sprintf(fmtDotNodeHighlightWoSymb, i)
@@ -144,7 +139,7 @@ func generateOutput(db *sql.DB, conf *configuration) (string, error) {
 	}
 	graphOutput += "}"
 
-	symbdata, err := symbSubsys(db, visited, conf.Instance, Cache{cache, cache2, cache3})
+	symbdata, err := d.symbSubsys(visited, conf.Instance)
 	if err != nil {
 		return "", err
 	}
@@ -177,7 +172,6 @@ func generateOutput(db *sql.DB, conf *configuration) (string, error) {
 }
 
 func main() {
-
 	conf, err := argsParse(cmdLineItemInit())
 	if err != nil {
 		if err.Error() != "dummy" {
@@ -191,13 +185,16 @@ func main() {
 		os.Exit(-2)
 	}
 	t := connectToken{conf.DBDriver, conf.DBDSN}
-	db := connectDb(&t)
+	d:=&SqlDB{}
+	err=d.init(&t)
+	if err!= nil {
+		panic(err)
+	}
 
-	output, err := generateOutput(db, &conf)
+	output, err := generateOutput(d, &conf)
 	if err != nil {
 		fmt.Println("Internal error", err)
 		os.Exit(-3)
 	}
 	fmt.Println(output)
-
 }
