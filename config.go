@@ -59,7 +59,7 @@ var defaultConfig = configuration{
 	TargetSubsys:   []string{},
 	MaxDepth:       0, //0: no limit
 	Jout:           "graphOnly",
-	Graphviz:	oText,
+	Graphviz:       oText,
 	cmdlineNeeds:   map[string]bool{},
 }
 
