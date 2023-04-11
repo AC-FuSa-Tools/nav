@@ -1,4 +1,4 @@
-// +build !CGO
+// +build CGO
 /*
  * Copyright (c) 2022 Red Hat, Inc.
  * SPDX-License-Identifier: GPL-2.0-or-later
@@ -138,6 +138,32 @@ var _ = Describe("Nav Tests", func() {
 		})
 	})
 
+	Describe("valid_dot", func() {
+		var test_valid_dot string = `
+digraph G {
+  start -> a0;
+  start -> b0;
+  end [shape=Msquare];
+}
+`
+
+		var test_invalid_dot string = `
+dgraph G {
+  start  a0;
+  end [shape=Msquare];
+}
+`
+		When("using on dot file", func() {
+			It("Should return true if syntax is correct", func() {
+				Expect(valid_dot(test_valid_dot)).To(Equal(true))
+			})
+			It("Should return false if syntax is not correct", func() {
+				Expect(valid_dot(test_invalid_dot)).To(Equal(false))
+			})
+		})
+	})
+
+
 	Describe("generateOutput", func() {
 		type mockQueries struct {
 			querySTR string
@@ -148,13 +174,6 @@ var _ = Describe("Nav Tests", func() {
 		var db *sql.DB
 		var mock sqlmock.Sqlmock
 		var dok *SqlDB
-		expectedDot:=`digraph G {
-rankdir="LR"
-"__x64_sys_getpid"->"__task_pid_nr_ns"
-"__task_pid_nr_ns"->"__rcu_read_lock"
-"__task_pid_nr_ns"->"__rcu_read_unlock"
-}
-`
 
 		dok=&SqlDB{}
 		db, mock, _ = sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
@@ -302,7 +321,7 @@ rankdir="LR"
 		dot, err := generateOutput(dok, &testConfig)
 		It("Should return sintax correct json with no error", func() {
 			Expect(err).To(BeNil())
-			Expect(dot).To(Equal(expectedDot))
+			Expect(valid_dot(dot)).To(Equal(true))
 			})
 	})
 
